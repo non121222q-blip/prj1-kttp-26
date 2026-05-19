@@ -23,7 +23,7 @@ type task struct {
 
 type TaskRepository interface {
 	Save(t domain.Task) (domain.Task, error)
-	FindList(uId uint64) ([]domain.Task, error)
+	FindList(uId uint64, filter domain.TaskFilter) ([]domain.Task, error)
 	Find(id uint64) (domain.Task, error)
 	Update(t domain.Task) (domain.Task, error)
 	Delete(id uint64) error
@@ -53,18 +53,41 @@ func (r taskRepository) Save(t domain.Task) (domain.Task, error) {
 	t = r.mapModelToDomain(tsk)
 	return t, nil
 }
-func (r taskRepository) FindList(uId uint64) ([]domain.Task, error) {
-	//todo:add filters (data, status, deadline, etc)
-	//todo: add sorting(deadline, created_date, etc)
+func (r taskRepository) FindList(uId uint64, filter domain.TaskFilter) ([]domain.Task, error) {
 	var tasks []task
-	//OrderBy(param)
-	err := r.coll.Find(db.Cond{"user_id": uId, "deleted_date": nil}).All(&tasks)
+	cond := db.Cond{"user_id": uId, "deleted_date": nil}
+	if filter.Status != nil {
+		cond["status"] = *filter.Status
+	}
+	if filter.DeadlineFrom != nil {
+		cond["deadline >="] = *filter.DeadlineFrom
+	}
+	if filter.DeadlineTo != nil {
+		cond["deadline <="] = *filter.DeadlineTo
+	}
 
+	// 3. Формуємо запит до бази
+	query := r.coll.Find(cond)
+
+	// 4. Додаємо сортування
+	if filter.SortBy != "" {
+		orderParam := filter.SortBy
+		if filter.SortOrder == "desc" {
+			orderParam = "-" + orderParam // Мінус для сортування за спаданням
+		}
+		query = query.OrderBy(orderParam)
+	} else {
+		// Сортування за замовчуванням
+		query = query.OrderBy("-created_date")
+	}
+
+	// 5. Виконуємо запит
+	err := query.All(&tasks)
 	if err != nil {
 		return nil, err
 	}
-	return r.mapModelToDomainCollection(tasks), nil
 
+	return r.mapModelToDomainCollection(tasks), nil
 }
 
 func (r taskRepository) Find(id uint64) (domain.Task, error) {

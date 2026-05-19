@@ -21,3 +21,11 @@ const (
 	InProgressTaskStatus TaskStatus = "IN_PROGRESS"
 	DoneTaskStatus       TaskStatus = "DONE"
 )
+
+type TaskFilter struct {
+	Status       *TaskStatus
+	DeadlineFrom *time.Time
+	DeadlineTo   *time.Time
+	SortBy       string
+	SortOrder    string
+}

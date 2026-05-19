@@ -1,6 +1,7 @@
 package requests
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/BohdanBoriak/boilerplate-go-back/internal/domain"
@@ -27,4 +28,17 @@ func (r TaskRequest) ToDomainModel() (interface{}, error) {
 		Description: r.Description,
 		Deadline:    deadline,
 	}, nil
+}
+
+// Форма для зміни тільки статусу
+type ChangeTaskStatusRequest struct {
+	Status string `json:"status"`
+}
+
+// Bind потрібен, щоб Роутер зміг прочитати цей JSON
+func (r *ChangeTaskStatusRequest) Bind(req *http.Request) error {
+	return nil
+}
+func (r *ChangeTaskStatusRequest) ToDomainModel() (interface{}, error) {
+	return nil, nil
 }

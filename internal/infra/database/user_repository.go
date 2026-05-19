@@ -108,6 +108,7 @@ func (r userRepository) mapDomainToModel(d domain.User) user {
 		UpdatedDate: d.UpdatedDate,
 		DeletedDate: d.DeletedDate,
 	}
+
 }
 
 func (r userRepository) mapModelToDomain(m user) domain.User {

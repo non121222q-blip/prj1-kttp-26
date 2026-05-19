@@ -10,7 +10,7 @@ import (
 type TaskService interface {
 	Save(domain.Task) (domain.Task, error)
 	Find(id uint64) (interface{}, error)
-	FindList(uId uint64) ([]domain.Task, error)
+	FindList(uId uint64, filter domain.TaskFilter) ([]domain.Task, error)
 	Update(t domain.Task) (domain.Task, error)
 	Delete(id uint64) error
 }
@@ -36,11 +36,11 @@ func (s taskService) Save(t domain.Task) (domain.Task, error) {
 	return task, nil
 }
 
-func (s taskService) FindList(uId uint64) ([]domain.Task, error) {
-	//todo extend arguments for filtering and sorting
-	tasks, err := s.taskRepo.FindList(uId)
+func (s taskService) FindList(uId uint64, filter domain.TaskFilter) ([]domain.Task, error) {
+	// Передаємо фільтр нашому Комірнику (taskRepo)
+	tasks, err := s.taskRepo.FindList(uId, filter)
 	if err != nil {
-		log.Printf("TaskService.Find(s.taskRepo.Find): %s", err)
+		log.Printf("TaskService.FindList(s.taskRepo.FindList): %s", err)
 		return nil, err
 	}
 

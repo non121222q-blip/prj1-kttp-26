@@ -3,6 +3,8 @@ package middlewares
 import (
 	"context"
 	"errors"
+	"net/http"
+
 	"github.com/BohdanBoriak/boilerplate-go-back/internal/app"
 	"github.com/BohdanBoriak/boilerplate-go-back/internal/domain"
 	"github.com/BohdanBoriak/boilerplate-go-back/internal/infra/http/controllers"
@@ -10,13 +12,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/upper/db/v4"
-	"net/http"
 )
 
 func AuthMiddleware(ja *jwtauth.JWTAuth, as app.AuthService, us app.UserService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		hfn := func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
+
+			//перевіряємо токен 401
 			token, err := jwtauth.VerifyRequest(ja, r, jwtauth.TokenFromHeader)
 
 			if err != nil {
@@ -30,8 +33,8 @@ func AuthMiddleware(ja *jwtauth.JWTAuth, as app.AuthService, us app.UserService)
 			}
 
 			claims := token.PrivateClaims()
-			uId := uint64(claims["user_id"].(float64))
-			uUuid, err := uuid.Parse(claims["uuid"].(string))
+			uId := uint64(claims["user_id"].(float64))        // Дістали ID юзера
+			uUuid, err := uuid.Parse(claims["uuid"].(string)) // Дістали унікальний номер сесії
 			if err != nil {
 				controllers.Unauthorized(w, err)
 				return
@@ -41,13 +44,13 @@ func AuthMiddleware(ja *jwtauth.JWTAuth, as app.AuthService, us app.UserService)
 				UserId: uId,
 				UUID:   uUuid,
 			}
-			err = as.Check(auth)
+			err = as.Check(auth) // Перевіряємо в базі сесій
 			if err != nil {
 				controllers.Unauthorized(w, err)
 				return
 			}
 
-			user, err := us.FindById(uId)
+			user, err := us.FindById(uId) // Шукаємо такого юзера в базі користувачів
 			if err != nil {
 				if errors.Is(err, db.ErrNoMoreRows) {
 					err = errors.New("unauthorized")

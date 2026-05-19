@@ -1,9 +1,11 @@
 package controllers
 
 import (
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/BohdanBoriak/boilerplate-go-back/internal/app"
 	"github.com/BohdanBoriak/boilerplate-go-back/internal/domain"
@@ -54,8 +56,31 @@ func (c TaskController) FindList() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := r.Context().Value(UserKey).(domain.User)
 
-		//todo: add filters for FindList, and sorting cryteria
-		tasks, err := c.taskService.FindList(user.Id)
+		// 1. Створюємо пусту "коробку" для фільтрів
+		var filter domain.TaskFilter
+
+		// 2. Читаємо побажання клієнта з посилання
+		if statusStr := r.URL.Query().Get("status"); statusStr != "" {
+			status := domain.TaskStatus(statusStr)
+			filter.Status = &status
+		}
+
+		filter.SortBy = r.URL.Query().Get("sortBy")
+		filter.SortOrder = r.URL.Query().Get("sortOrder")
+
+		if fromStr := r.URL.Query().Get("deadlineFrom"); fromStr != "" {
+			if parsedFrom, err := time.Parse(time.RFC3339, fromStr); err == nil {
+				filter.DeadlineFrom = &parsedFrom
+			}
+		}
+		if toStr := r.URL.Query().Get("deadlineTo"); toStr != "" {
+			if parsedTo, err := time.Parse(time.RFC3339, toStr); err == nil {
+				filter.DeadlineTo = &parsedTo
+			}
+		}
+
+		// 3. Віддаємо зібраний фільтр Менеджеру!
+		tasks, err := c.taskService.FindList(user.Id, filter)
 		if err != nil {
 			log.Printf("TaskController.FindList(c.taskService.FindList): %s", err)
 			InternalServerError(w, err)
@@ -140,5 +165,36 @@ func (c TaskController) Delete() http.HandlerFunc {
 		}
 
 		noContent(w)
+	}
+}
+
+func (c TaskController) ChangeStatus() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// 1. Дістаємо таску, яку хочемо змінити (помічник tpom вже поклав її сюди)
+		task := r.Context().Value(TaskKey).(domain.Task)
+
+		// 2. Читаємо новий статус, який прислав клієнт у JSON
+		var req requests.ChangeTaskStatusRequest
+		err := json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			log.Printf("TaskController.ChangeStatus(requests.Bind): %s", err)
+			BadRequest(w, errors.New("invalid request body"))
+			return
+		}
+
+		// 3. Змінюємо статус у нашій тасці
+		task.Status = domain.TaskStatus(req.Status)
+
+		// 4. Віддаємо Менеджеру, щоб він зберіг зміни в базу
+		updatedTask, err := c.taskService.Update(task)
+		if err != nil {
+			log.Printf("TaskController.ChangeStatus(c.taskService.Update): %s", err)
+			InternalServerError(w, err)
+			return
+		}
+
+		// 5. Віддаємо успішну відповідь
+		taskDto := resources.TaskDto{}
+		Success(w, taskDto.DomainToDto(updatedTask))
 	}
 }

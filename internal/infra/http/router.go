@@ -46,7 +46,8 @@ func Router(cont container.Container) http.Handler {
 				})
 			})
 
-			// Protected routes
+			// Protected routes(Захищені маршрути) // не піде до юзера та таскроут поки не пройде а
+
 			apiRouter.Group(func(apiRouter chi.Router) {
 				apiRouter.Use(cont.AuthMw)
 
@@ -102,12 +103,15 @@ func UserRouter(r chi.Router, uc controllers.UserController) {
 		)
 	})
 }
+
 func TaskRouter(r chi.Router, tc controllers.TaskController, ts app.TaskService) {
 	tpom := middlewares.PathObject("taskId", controllers.TaskKey, ts)
 	r.Route("/tasks", func(apiRouter chi.Router) {
 		apiRouter.Post("/", tc.Save())
+		apiRouter.Get("/", tc.FindList())
 		apiRouter.With(tpom).Get("/{taskId}", tc.Find())
 		apiRouter.With(tpom).Put("/{taskId}", tc.Update())
+		apiRouter.With(tpom).Patch("/{taskId}/status", tc.ChangeStatus())
 		apiRouter.With(tpom).Delete("/{taskId}", tc.Delete())
 	})
 }
