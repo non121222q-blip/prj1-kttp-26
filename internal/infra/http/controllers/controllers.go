@@ -7,9 +7,6 @@ import (
 	"net/http"
 )
 
-/* should not use built-in type string as key for value;
-define your own type to avoid collisions */
-
 type CtxKey struct {
 	Name string
 }

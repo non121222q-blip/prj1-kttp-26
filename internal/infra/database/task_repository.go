@@ -54,6 +54,7 @@ func (r taskRepository) Save(t domain.Task) (domain.Task, error) {
 	return t, nil
 }
 func (r taskRepository) FindList(uId uint64, filter domain.TaskFilter) ([]domain.Task, error) {
+	// Створюємо пусту "коробку" для фільтрів
 	var tasks []task
 	cond := db.Cond{"user_id": uId, "deleted_date": nil}
 	if filter.Status != nil {
@@ -66,10 +67,10 @@ func (r taskRepository) FindList(uId uint64, filter domain.TaskFilter) ([]domain
 		cond["deadline <="] = *filter.DeadlineTo
 	}
 
-	// 3. Формуємо запит до бази
+	//  Формуємо запит до бази
 	query := r.coll.Find(cond)
 
-	// 4. Додаємо сортування
+	//  Додаємо сортування
 	if filter.SortBy != "" {
 		orderParam := filter.SortBy
 		if filter.SortOrder == "desc" {
@@ -81,7 +82,7 @@ func (r taskRepository) FindList(uId uint64, filter domain.TaskFilter) ([]domain
 		query = query.OrderBy("-created_date")
 	}
 
-	// 5. Виконуємо запит
+	//  Виконуємо запит
 	err := query.All(&tasks)
 	if err != nil {
 		return nil, err

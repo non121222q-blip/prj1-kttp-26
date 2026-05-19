@@ -56,10 +56,10 @@ func (c TaskController) FindList() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := r.Context().Value(UserKey).(domain.User)
 
-		// 1. Створюємо пусту "коробку" для фільтрів
+		//  Ств пусту "коробку" для фільтрів
 		var filter domain.TaskFilter
 
-		// 2. Читаємо побажання клієнта з посилання
+		//  Читаємо побажання клієнта з посилання
 		if statusStr := r.URL.Query().Get("status"); statusStr != "" {
 			status := domain.TaskStatus(statusStr)
 			filter.Status = &status
@@ -79,7 +79,7 @@ func (c TaskController) FindList() http.HandlerFunc {
 			}
 		}
 
-		// 3. Віддаємо зібраний фільтр Менеджеру!
+		// 3. Віддаємо зібраний фільтр cthdsce
 		tasks, err := c.taskService.FindList(user.Id, filter)
 		if err != nil {
 			log.Printf("TaskController.FindList(c.taskService.FindList): %s", err)
@@ -109,8 +109,6 @@ func (c TaskController) Find() http.HandlerFunc {
 		Success(w, taskDto)
 	}
 }
-
-//todo: add method for chang (update) Task status
 
 func (c TaskController) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -170,10 +168,10 @@ func (c TaskController) Delete() http.HandlerFunc {
 
 func (c TaskController) ChangeStatus() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// 1. Дістаємо таску, яку хочемо змінити (помічник tpom вже поклав її сюди)
+		//  Дістаємо таску, яку хочемо змінити
 		task := r.Context().Value(TaskKey).(domain.Task)
 
-		// 2. Читаємо новий статус, який прислав клієнт у JSON
+		// Читаємо новий статус, який прислав клієнт у JSON
 		var req requests.ChangeTaskStatusRequest
 		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {
@@ -182,10 +180,10 @@ func (c TaskController) ChangeStatus() http.HandlerFunc {
 			return
 		}
 
-		// 3. Змінюємо статус у нашій тасці
+		//  Змінюємо статус у нашій тасці
 		task.Status = domain.TaskStatus(req.Status)
 
-		// 4. Віддаємо Менеджеру, щоб він зберіг зміни в базу
+		// зберіг зміни в базу
 		updatedTask, err := c.taskService.Update(task)
 		if err != nil {
 			log.Printf("TaskController.ChangeStatus(c.taskService.Update): %s", err)
@@ -193,7 +191,6 @@ func (c TaskController) ChangeStatus() http.HandlerFunc {
 			return
 		}
 
-		// 5. Віддаємо успішну відповідь
 		taskDto := resources.TaskDto{}
 		Success(w, taskDto.DomainToDto(updatedTask))
 	}
